@@ -32,7 +32,7 @@ axiosClient.interceptors.response.use(
       const refreshToken = window.localStorage.getItem("refreshToken");
       if (refreshToken) {
         await axiosClient
-          .post("/v1/refresh-token", {
+          .post("/admin/refresh-token", {
             refreshToken: window.localStorage.getItem("refreshToken"),
           })
           .then((response) => {
@@ -43,6 +43,8 @@ axiosClient.interceptors.response.use(
             );
           })
           .catch((err) => {
+            localStorage.removeItem('token')
+            localStorage.removeItem('refreshToken')
             return Promise.reject(err);
           });
         return axios(error.config);

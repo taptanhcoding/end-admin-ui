@@ -7,7 +7,7 @@ function Login() {
   const onFinish = async (values) => {
     const { email, password } = values;
     try {
-      const login = await axiosClient.post("/v1/login", {
+      const login = await axiosClient.post("/admin/login", {
         email,
         password,
       });

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Image, message, Form } from "antd";
-import { LockOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Button, Image, message, Form, Carousel } from "antd";
+import { LockOutlined, PlusOutlined, DeleteOutlined, UnlockOutlined } from "@ant-design/icons";
 import axiosClient from "../../../libraries/axiosClient";
 import ContentHandle from "../../../components/ContentHandle/ContentHandle";
 import {
@@ -17,14 +17,22 @@ function Products() {
   const [link, setLink] = useState("/");
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [categoryId, setCategoryId] = useState(false)
   const [data, setData] = useState([]);
-  const [countD, setCountD] = useState(0);
-  const [countA, setCountA] = useState(0);
+  const [dataFilter, setDataFilter] = useState([])
+  const [filter, setFilter] = useState('all')
   //xử lý upload file
 
   //xử lý layout,modal,form
   const [form] = Form.useForm();
-
+  const contentStyle = {
+    height: "80px",
+    width: "80px",
+    color: "#fff",
+    lineHeight: "30px",
+    textAlign: "center",
+    background: "#364d79",
+  };
   // Đây là Dữ liệu truyền vào
   //menu
   const items = [
@@ -33,67 +41,49 @@ function Products() {
       label: "Trạng thái",
       children: [
         {
-          key: "active",
-          label: countA ? `Hoạt động {${countA}}` : "Hoạt động",
+          key: "all",
+          label: "Tất cả",
           onClick: () => {
+            setFilter('all')
+            setLink("/");
+          },
+        },
+        {
+          key: "active",
+          label: "Hoạt động",
+          onClick: () => {
+            setFilter('active')
+            setLink("/");
+          },
+        },
+        {
+          key: "locked",
+          label: "Khóa",
+          onClick: () => {
+            setFilter('locked')
             setLink("/");
           },
         },
         {
           key: "deleted",
-          label: countD ? `Khóa {${countD}}` : "Khóa",
+          label: "Đã xóa",
           onClick: () => {
+            setFilter('deleted')
             setLink("/getDeleted");
           },
-        },
+        }
       ],
     },
   ];
   //action trong table
+
   const itemsAction = [
     {
       key: "add",
       label: "Thêm mới",
       icon: <PlusOutlined />,
       onClick: () => {
-        showPromiseConfirm({
-          value: {},
-          form,
-          type: "Product",
-          categories,
-          suppliers,
-          cb: async (value) => {
-            console.log('value add',value);
-            // try {
-            //   const fileImage = value.fileImage;
-            //   let formData = new FormData();
-            //   if (fileImage) {
-            //     formData.append("file", fileImage.file);
-            //   }
-            //   delete value.fileImage;
-            //   const addProductSt = await axiosClient.post(`/v1/products/add`, {
-            //     ...value,
-            //   });
-            //   message.info(addProductSt.message);
-
-            //   if (addProductSt.status) {
-            //     if (fileImage) {
-            //       const uploadStatus = await axiosClient.post(
-            //         `/v1/upload-single/products/${addProductSt.data._id}`,
-            //         formData
-            //       );
-            //       message.info(uploadStatus.message);
-            //     }
-            //   }
-            // } catch (error) {
-            //   console.log(error);
-            //   message.error(error?.response?.data?.message);
-            // }
-            // form.resetFields();
-            // navigate(0);
-          },
-          cbUpFile: async (fileUpload) => {},
-        });
+        navigate('/admin/handle-products/add')
       },
     },
     {
@@ -103,7 +93,7 @@ function Products() {
       children: [
         {
           key: "Delete",
-          label: "Xóa nhiều",
+          label: "Xóa",
           icon: <DeleteOutlined />,
           onClick: async () => {
             showHandleStatusConfirm({
@@ -117,7 +107,7 @@ function Products() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.delete(
-                    "/v1/products/deletes",
+                    "/admin/data/products/UPDATE/deletes",
                     { data: { ids } }
                   );
                   message.info(deletesCtSt.message);
@@ -130,11 +120,78 @@ function Products() {
             });
           },
         },
+        {
+          key: "Locked",
+          label: "Khóa",
+          icon: <LockOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Lock",
+              type: "Product",
+              value: selections,
+              cb: async (value) => {
+                console.log('data xóa ', value);
+
+                const ids = value.map((v) => v._id);
+                let formData = new FormData();
+                formData.append("ids", ids);
+                try {
+                  const deletesCtSt = await axiosClient.patch(
+                    "/admin/data/products/UPDATE/changeStatusM",
+                    { ids, status: false }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error.response.data.message);
+                }
+              },
+            });
+          },
+        },
+        {
+          key: "UnLocked",
+          label: "Mở khóa",
+          icon: <UnlockOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Unlock",
+              type: "Product",
+              value: selections,
+              cb: async (value) => {
+                const ids = value.map((v) => v._id);
+                console.log(ids);
+                let formData = new FormData();
+                formData.append("ids", IDBObjectStore);
+                try {
+                  const deletesCtSt = await axiosClient.patch(
+                    "/admin/data/products/UPDATE/changeStatusM",
+                    { ids, status: true }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error.response.data.message);
+                }
+              },
+            });
+          },
+        }
       ],
     },
   ];
 
   const itemsActionDelete = [
+    {
+      key: "add",
+      label: "Thêm mới",
+      icon: <PlusOutlined />,
+      onClick: () => {
+        navigate('/admin/handle-products/add')
+      },
+    },
     {
       key: "control",
       label: "Quản trị",
@@ -142,7 +199,7 @@ function Products() {
       children: [
         {
           key: "Restore",
-          label: "Kích hoạt",
+          label: "Khôi phục",
           icon: <DeleteOutlined />,
           onClick: async () => {
             showHandleStatusConfirm({
@@ -155,7 +212,7 @@ function Products() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.put(
-                    "/v1/products/restores",
+                    "/admin/data/products/UPDATE/restores",
                     { ids }
                   );
                   message.info(deletesCtSt.message);
@@ -170,7 +227,7 @@ function Products() {
         },
         {
           key: "destroys",
-          label: "Hủy diệt nhiều",
+          label: "Xóa luôn !",
           icon: <DeleteOutlined />,
           onClick: async () => {
             showHandleStatusConfirm({
@@ -184,7 +241,7 @@ function Products() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.delete(
-                    "/v1/products/destroys",
+                    "/admin/data/products/DELETE/destroys",
                     { data: { ids } }
                   );
                   message.info(deletesCtSt.message);
@@ -201,7 +258,15 @@ function Products() {
     },
   ];
   //column table
-  const ColumnsProduct = [
+  const settingColumns = [
+    {
+      title: "",
+      dataIndex: "active",
+      width: "30px",
+      render: (text) => {
+        return text ? <UnlockOutlined /> : <LockOutlined />
+      }
+    },
     {
       title: "Tên",
       dataIndex: "name",
@@ -219,25 +284,22 @@ function Products() {
       dataIndex: "stock",
     },
     {
-        title: "Danh mục",
-        dataIndex: "categoty",
-        render: (_,value) => {
-          console.log("_",_);
-          console.log("value",value);
-          return value.category.name
-        }
+      title: "Danh mục",
+      dataIndex: "categoty",
+      render: (_, value) => {
+        return value?.category?.name;
       },
-      {
-        title: "Nguồn",
-        dataIndex: "supplier",
-        render: (_,value) => {
-          console.log('value',value);
-          return value.supplier.name
-        }
+    },
+    {
+      title: "Nguồn",
+      dataIndex: "supplier",
+      render: (_, value) => {
+        return value.supplier?.name;
       },
+    },
     {
       title: "Hình ảnh",
-      dataIndex: "coverImgUrl",
+      dataIndex: "coverImageUrl",
       render: (text) => {
         return (
           <Image
@@ -251,18 +313,29 @@ function Products() {
     },
     {
       title: "Slide",
-      dataIndex: "coverImgUrl",
+      dataIndex: "sliderImageUrl",
       render: (text) => {
         return (
-          <Image
-            width={50}
-            height={50}
-            src={`${process.env.REACT_APP_API_URL}/${text}`}
-            fallback={images.error}
-          />
+          <div style={{ width: "80px" }}>
+            <Carousel effect="fade" autoplay>
+              {text.map((ig, index) => (
+                <div key={index}>
+                  <Image
+                    width={80}
+                    height={80}
+                    src={`${process.env.REACT_APP_API_URL}/${ig}`}
+                    fallback={images.error}
+                  />
+                </div>
+              ))}
+            </Carousel>
+          </div>
         );
       },
-    },
+    },]
+
+  const ColumnsProduct = [
+    ...settingColumns,
     {
       title: "Action",
       render: (_, value) => {
@@ -273,47 +346,7 @@ function Products() {
               ghost
               style={{ marginRight: "10px" }}
               onClick={() => {
-                showPromiseConfirm({
-                  value: value,
-                  form,
-                  type: "Product",
-                  categories,
-                  suppliers,
-                  cb: async (value2) => {
-                    console.log('value in', value2);
-                    // try {
-                    //   const fileImage = value2.fileImage;
-                    //   console.log("fileImage", fileImage);
-                    //   let formData = new FormData();
-                    //   if (fileImage) {
-                    //     formData.append("file", fileImage.file);
-                    //   }
-                    //   delete value2.fileImage;
-                    //   const updateProductST = await axiosClient.put(
-                    //     `/v1/products/update/${value._id}`,
-                    //     {
-                    //       ...value2,
-                    //     }
-                    //   );
-                    //   if (updateProductST.status) {
-                    //     if (fileImage) {
-                    //       const uploadStatus = await axiosClient.post(
-                    //         `/v1/upload-single/products/${value._id}`,
-                    //         formData
-                    //       );
-                    //       message.info(uploadStatus.message);
-                    //     }
-                    //   }
-                    //   message.info(updateProductST.message);
-                    // } catch (error) {
-                    //   console.log(error);
-                    //   message.error(error.response.data.message);
-                    // }
-                    // form.resetFields();
-                    // navigate(0);
-                  },
-                  cbUpFile: async (fileUpload) => {},
-                });
+                navigate(`/admin/handle-products/${value._id}`)
               }}
             >
               Sửa
@@ -329,7 +362,7 @@ function Products() {
                   cb: async (value) => {
                     try {
                       let deleteStatus = await axiosClient.delete(
-                        `/v1/products/delete/${value._id}`
+                        `/admin/data/products/UPDATE/delete/${value._id}`
                       );
                       message.info(deleteStatus.message);
                       navigate(0);
@@ -350,67 +383,8 @@ function Products() {
   ];
 
   const ColumnsProductDeleted = [
-    {
-      title: "Tên",
-      dataIndex: "name",
-    },
-    {
-      title: "Giá",
-      dataIndex: "price",
-    },
-    {
-      title: "Khuyến mãi",
-      dataIndex: "discount",
-    },
-    {
-      title: "Tồn",
-      dataIndex: "stock",
-    },
-    {
-      title: "Danh mục",
-      dataIndex: "categoty",
-      render: (_, value) => {
-        console.log("_", _);
-        console.log("value", value);
-        return value.category.name;
-      },
-    },
-    {
-      title: "Nguồn",
-      dataIndex: "supplier",
-      render: (_, value) => {
-        console.log("value", value);
-        return value.supplier.name;
-      },
-    },
-    {
-      title: "Hình ảnh",
-      dataIndex: "coverImgUrl",
-      render: (text) => {
-        return (
-          <Image
-            width={50}
-            height={50}
-            src={`${process.env.REACT_APP_API_URL}/${text}`}
-            fallback={images.error}
-          />
-        );
-      },
-    },
-    {
-      title: "Slide",
-      dataIndex: "coverImgUrl",
-      render: (text) => {
-        return (
-          <Image
-            width={50}
-            height={50}
-            src={`${process.env.REACT_APP_API_URL}/${text}`}
-            fallback={images.error}
-          />
-        );
-      },
-    },
+    ...settingColumns,
+
     {
       title: "Action",
       render: (_, value) => {
@@ -428,7 +402,7 @@ function Products() {
                   cb: async (value) => {
                     try {
                       let restoreSt = await axiosClient.put(
-                        `/v1/products/restore/${value._id}`
+                        `/admin/data/products/UPDATE/restore/${value._id}`
                       );
                       message.info(restoreSt.message);
                       navigate(0);
@@ -453,7 +427,7 @@ function Products() {
                   cb: async (value) => {
                     try {
                       let destroySt = await axiosClient.delete(
-                        `/v1/products/destroy/${value._id}`
+                        `/admin/data/products/DELETE/destroy/${value._id}`
                       );
                       message.info(destroySt.message);
                       navigate(0);
@@ -475,27 +449,53 @@ function Products() {
 
   useEffect(() => {
     async function getDataProducts() {
-      const products = await axiosClient.get("/v1/products" + link);
+      const products = await axiosClient.get("/admin/data/products" + link);
       const dataWithKey = products.data.map((value) => ({
         ...value,
         key: value.slug,
       }));
       setData(dataWithKey);
-      setCountD(products.deleted);
-      setCountA(products.countA);
     }
     getDataProducts();
-  }, [link]);
-
+  }, []);
   useEffect(() => {
-    async function getCateSupp() {
-      const cateData = await axiosClient.get('/v1/category')
-      const suppData = await axiosClient.get('/v1/suppliers')
-      setCategories(cateData.data)
-      setSuppliers(suppData.data)
+    switch (filter) {
+      case 'all':
+        setDataFilter(data)
+        break;
+      case 'active':
+        setDataFilter(data.filter(val => {
+          if (val.active && !val.deleted) {
+            return true
+          }
+        }))
+        break;
+      case 'locked':
+        setDataFilter(data.filter(val => {
+          if (!val.active && !val.deleted) {
+            return true
+          }
+        }))
+        break;
+      case 'deleted':
+        setDataFilter(data.filter(val => {
+          if (val.deleted) {
+            return true
+          }
+        }))
+        break;
+      default:
+        break;
     }
-    getCateSupp()
-  },[])
+  }, [filter])
+
+  useMemo(() => {
+    async function getCateSupp() {
+      const cateData = await axiosClient.get("/admin/data/categories");
+      setCategories(cateData.data);
+    }
+    getCateSupp();
+  }, []);
 
   //xử lý checkbox
   const rowSelection = {
@@ -510,7 +510,7 @@ function Products() {
       <ContentHandle
         itemsFilter={items}
         itemsAction={link === "/getDeleted" ? itemsActionDelete : itemsAction}
-        dataTable={data}
+        dataTable={dataFilter}
         rowSelection={rowSelection}
         columns={
           link === "/getDeleted" ? ColumnsProductDeleted : ColumnsProduct

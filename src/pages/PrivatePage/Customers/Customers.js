@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Image, message, Form, List } from "antd";
-import { LockOutlined, PlusOutlined, DeleteOutlined, UnlockOutlined } from "@ant-design/icons";
+import { LockOutlined, PlusOutlined, DeleteOutlined ,UnlockOutlined } from "@ant-design/icons";
 import axiosClient from "../../../libraries/axiosClient";
 import ContentHandle from "../../../components/ContentHandle/ContentHandle";
 import {
@@ -10,13 +10,15 @@ import {
 } from "../../../libraries/Modal";
 import { images } from "../../../assets/images";
 
-function Employees() {
+function Customers() {
   const navigate = useNavigate();
   const [selections, setSelections] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   //xử lý dữ liệu vào
-  const [filter, setFilter] = useState("all");
+  const [link, setLink] = useState("/");
   const [data, setData] = useState([]);
-  const [dataFilter, setDataFilter] = useState([])
+  const [countD, setCountD] = useState(0);
+  const [countA, setCountA] = useState(0);
   //xử lý upload file
 
   //xử lý layout,modal,form
@@ -30,35 +32,21 @@ function Employees() {
       label: "Trạng thái",
       children: [
         {
-          key: "all",
-          label: "Tất cả",
-          onClick: () => {
-            setFilter(prev => prev == 'all' ? '' : 'all')
-          }
-        },
-        {
           key: "active",
-          label: "Hoạt động",
+          label: countA ? `Hoạt động {${countA}}` : "Hoạt động",
           onClick: () => {
-            setFilter('active')
-          }
+            setLink("/");
+          },
         },
         {
-          key: "lock",
-          label: "Khóa",
+          key: "deleted",
+          label: countD ? `Khóa {${countD}}` : "Khóa",
           onClick: () => {
-            setFilter('lock')
-          }
+            setLink("/getDeleted");
+          },
         },
-        {
-          key: "delete",
-          label: "Đã xóa",
-          onClick: () => {
-            setFilter('delete')
-          }
-        }
       ],
-    }
+    },
   ];
   //action trong table
   const itemsAction = [
@@ -70,33 +58,34 @@ function Employees() {
         showPromiseConfirm({
           value: {},
           form,
-          type: "Employee",
+          suppliers,
+          type: "Customers",
           cb: async (value) => {
+            console.log("data:::", value);
             try {
               if (!!value.supplierIds) {
                 value.supplierIds = value.supplierIds.map((suppId) => ({
                   supplierId: suppId,
                 }));
               }
-              const fileImage = value.img;
+              const fileImage = value.fileImage;
               let formData = new FormData();
               if (fileImage) {
                 formData.append("file", fileImage.file);
               }
-              delete value.img;
-              const addEmployeesSt = await axiosClient.post(
-                `/admin/create-admin`,
+              delete value.fileImage;
+              const addCustomersSt = await axiosClient.post(
+                `/admin/data/customers/ADD/add`,
                 {
                   ...value,
                 }
               );
-              message.info(addEmployeesSt.message);
+              message.info(addCustomersSt.message);
 
-              if (addEmployeesSt.status) {
+              if (addCustomersSt.status) {
                 if (fileImage) {
-
                   const uploadStatus = await axiosClient.post(
-                    `/admin/upload-single/employees/${addEmployeesSt.data._id}`,
+                    `/admin/upload-single/customers/${addCustomersSt.data._id}`,
                     formData
                   );
                   message.info(uploadStatus.message);
@@ -109,23 +98,122 @@ function Employees() {
             form.resetFields();
             navigate(0);
           },
-          cbUpFile: async (fileUpload) => { },
+          cbUpFile: async (fileUpload) => {},
         });
       },
-    }
-  ];//=> cần sửa
+    },
+    {
+      key: "control",
+      label: "Quản trị",
+      icon: <LockOutlined />,
+      children: [
+        {
+          key: "Delete",
+          label: "Xóa nhiều",
+          icon: <DeleteOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Delete",
+              type: "Customers",
+              value: selections,
+              cb: async (value) => {
+                const ids = value.map((v) => v._id);
+                console.log(ids);
+                let formData = new FormData();
+                formData.append("ids", IDBObjectStore);
+                try {
+                  const deletesCtSt = await axiosClient.delete(
+                    "/admin/data/customers/deletes",
+                    { data: { ids } }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error?.response?.data?.message);
+                }
+              },
+            });
+          },
+        },
+      ],
+    },
+  ];
 
   const itemsActionDelete = [
+    {
+      key: "control",
+      label: "Quản trị",
+      icon: <LockOutlined />,
+      children: [
+        {
+          key: "Restore",
+          label: "Kích hoạt",
+          icon: <DeleteOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Restore",
+              type: "Customers",
+              value: selections,
+              cb: async (value) => {
+                const ids = value.map((v) => v._id);
+                let formData = new FormData();
+                formData.append("ids", IDBObjectStore);
+                try {
+                  const deletesCtSt = await axiosClient.put(
+                    "/admin/data/customers/restores",
+                    { ids }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error?.response?.data?.message);
+                }
+              },
+            });
+          },
+        },
+        {
+          key: "destroys",
+          label: "Hủy diệt nhiều",
+          icon: <DeleteOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Delete",
+              type: "Customers",
+              value: selections,
+              cb: async (value) => {
+                const ids = value.map((v) => v._id);
+                let formData = new FormData();
+                formData.append("ids", IDBObjectStore);
+                try {
+                  const deletesCtSt = await axiosClient.delete(
+                    "/admin/data/customers/destroys",
+                    { data: { ids } }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error?.response?.data?.message);
+                }
+              },
+            });
+          },
+        },
+      ],
+    },
   ];
   //column table
-  const ColumnsEmployees = [
+  const ColumnsCustomers = [
     {
       title: "Trạng thái",
       dataIndex: "locked",
       render: (data) => {
         return data ? <LockOutlined /> : <UnlockOutlined />
       },
-      width: '50px',
+      width:'50px',
       align: 'center'
     },
     {
@@ -173,29 +261,35 @@ function Employees() {
                 showPromiseConfirm({
                   value: value,
                   form,
-                  type: "Employee",
+                  type: "Customers",
+                  suppliers,
                   cb: async (value2) => {
                     try {
-                      const fileImage = value2.img;
-                      console.log('tồn tại ảnh : ', !!fileImage);
+                      if (value2.supplierIds) {
+                        value2.supplierIds = value2.supplierIds.map(
+                          (suppId) => ({ supplierId: suppId })
+                        );
+                      }
+                      const fileImage = value2.fileImage;
                       let formData = new FormData();
                       if (fileImage) {
                         formData.append("file", fileImage.file);
                       }
                       delete value2.fileImage;
                       console.log("value update", value2);
-                      const updateEmployeesST = await axiosClient.patch(
-                        `/admin/admin-update/${value._id}`,
+                      const updateCustomersST = await axiosClient.put(
+                        `/admin/data/customers/update/${value._id}`,
                         {
                           ...value2,
                         }
                       );
-                      // message.info(updateEmployeesST.message);
-                      console.log(updateEmployeesST);
-                      if (updateEmployeesST.status) {
+                      // message.info(updateCustomersST.message);
+                      console.log(updateCustomersST);
+                      if (updateCustomersST.status) {
                         if (fileImage) {
+                          console.log("vào đây rồi");
                           const uploadStatus = await axiosClient.post(
-                            `/admin/upload-single/employees/${value._id}`,
+                            `/admin/upload-single/customers/${value._id}`,
                             formData
                           );
                           message.info(uploadStatus.message);
@@ -208,7 +302,7 @@ function Employees() {
                     form.resetFields();
                     navigate(0);
                   },
-                  cbUpFile: async (fileUpload) => { },
+                  cbUpFile: async (fileUpload) => {},
                 });
               }}
             >
@@ -220,12 +314,12 @@ function Employees() {
               onClick={() => {
                 showHandleStatusConfirm({
                   action: "Delete",
-                  type: "Employee",
+                  type: "Customers",
                   value: [value],
                   cb: async (value) => {
                     try {
                       let deleteStatus = await axiosClient.delete(
-                        `/admin/admin-delete/${value[0]._id}`
+                        `/admin/data/customers/delete/${value._id}`
                       );
                       console.log("deleteStatus", deleteStatus);
                       message.info(deleteStatus.message);
@@ -246,15 +340,14 @@ function Employees() {
     },
   ];
 
-  const ColumnsEmployeesDeleted = [
+  const ColumnsCustomersDeleted = [
     {
       title: "Trạng thái",
       dataIndex: "locked",
       render: (data) => {
-        return data ? <LockOutlined /> : <UnlockOutlined />
+
       },
-      width: '50px',
-      align: 'center'
+      width: 30
     },
     {
       title: "Tên nhân viên",
@@ -300,12 +393,12 @@ function Employees() {
               onClick={() => {
                 showHandleStatusConfirm({
                   action: "Restore",
-                  type: "Employee",
+                  type: "Customers",
                   value: [value],
                   cb: async (value) => {
                     try {
-                      let restoreSt = await axiosClient.patch(
-                        `/admin/admin-restore/${value[0]._id}`
+                      let restoreSt = await axiosClient.put(
+                        `/admin/data/customers/restore/${value._id}`
                       );
                       message.info(restoreSt.message);
                       navigate(0);
@@ -325,12 +418,12 @@ function Employees() {
               onClick={() => {
                 showHandleStatusConfirm({
                   action: "Destroy",
-                  type: "Employee",
+                  type: "Customers",
                   value: [value],
                   cb: async (value) => {
                     try {
                       let destroySt = await axiosClient.delete(
-                        `/admin/admin-destroy/${value[0]._id}`
+                        `/admin/data/customers/destroy/${value._id}`
                       );
                       message.info(destroySt.message);
                       navigate(0);
@@ -351,42 +444,29 @@ function Employees() {
   ];
 
   useEffect(() => {
-    async function getDataEmployees() {
-      const employees = await axiosClient.get("/admin/admin-list");
-      const dataWithKey = employees.data.map((value) => ({
+    async function getDataCustomers() {
+      const customers = await axiosClient.get("/admin/employees" + link);
+      const dataWithKey = customers.data.map((value) => ({
         ...value,
         key: value.email,
       }));
       setData(dataWithKey);
+      setCountD(customers.deleted);
+      setCountA(customers.countA);
     }
-    getDataEmployees();
-  }, []);
-
-  useEffect(() => {
-    function setDtFilter(filter) {
-      console.log('lấy dữ liệu');
-      switch (filter) {
-        case 'all':
-          setDataFilter(data)
-          break;
-        case 'active':
-          setDataFilter(data.filter(vl => vl.active && !vl.deleted))
-          break;
-        case 'lock':
-          setDataFilter(data.filter(vl => !vl.active))
-          break;
-        case 'delete':
-          setDataFilter(data.filter(vl => vl.deleted))
-          break;
-        default:
-          break;
-      }
-    }
-    setDtFilter(filter)
-    if (!filter) {
-      setFilter('all')
-    }
-  }, [filter, data])
+    getDataCustomers();
+  }, [link]);
+  // useEffect(() => {
+  //   async function getDataSuppliers() {
+  //     const suppliers = await axiosClient.get('/admin/suppliers')
+  //     const dataWithKey = suppliers.data.map((value) => ({
+  //       ...value,
+  //       key: value.slug,
+  //     }));
+  //     setSuppliers(dataWithKey)
+  //   }
+  //   getDataSuppliers()
+  // },[])
 
   //xử lý checkbox
   const rowSelection = {
@@ -400,11 +480,11 @@ function Employees() {
     <div style={{ paddingTop: "10px" }}>
       <ContentHandle
         itemsFilter={items}
-        itemsAction={filter === "delete" ? itemsActionDelete : itemsAction}
-        dataTable={dataFilter}
+        itemsAction={link === "/getDeleted" ? itemsActionDelete : itemsAction}
+        dataTable={data}
         rowSelection={rowSelection}
         columns={
-          filter === "delete" ? ColumnsEmployeesDeleted : ColumnsEmployees
+          link === "/getDeleted" ? ColumnsCustomersDeleted : ColumnsCustomers
         }
         pagination={{ pageSize: 6 }}
       />
@@ -412,4 +492,4 @@ function Employees() {
   );
 }
 
-export default Employees;
+export default Customers;

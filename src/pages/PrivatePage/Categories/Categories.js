@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Image, message, Form } from "antd";
-import { LockOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { LockOutlined, PlusOutlined, DeleteOutlined, UnlockOutlined } from "@ant-design/icons";
 import axiosClient from "../../../libraries/axiosClient";
 import ContentHandle from "../../../components/ContentHandle/ContentHandle";
 import {
   showHandleStatusConfirm,
   showPromiseConfirm,
 } from "../../../libraries/Modal";
-import { images } from "../../../assets/images";
+import { images } from '../../../assets/images'
 
 function Categories() {
   const navigate = useNavigate();
@@ -16,12 +16,81 @@ function Categories() {
   //xử lý dữ liệu vào
   const [link, setLink] = useState("/");
   const [data, setData] = useState([]);
-  const [countD, setCountD] = useState(0);
-  const [countA, setCountA] = useState(0);
-  //xử lý upload file
+  const [dataFilter, setDataFilter] = useState([])
+  const [filter, setFilter] = useState('all')
+  const [suppliers, setSuppliers] = useState([])
+
+  
+
+  useEffect(() => {
+    async function getDataSupplier() {
+      const categories = await axiosClient.get("/admin/data/categories");
+      const supplierList = await axiosClient.get("/admin/data/suppliers");
+      const dataWithKey = categories.data.map((value) => ({
+        ...value,
+        key: value.slug,
+      }));
+      const dataSupplier = supplierList.data.map((val) => {
+        if (val.active == true && val.deleted == false) {
+          return ({
+            ...val,
+            key: val.slug,
+          })
+        }
+      })
+      setSuppliers(dataSupplier)
+      setData(dataWithKey);
+      setDataFilter(dataWithKey.filter(val => !val.deleted))
+    }
+    getDataSupplier();
+  }, []);
+
+  useEffect(() => {
+    async function getDataSupplierFilter() {
+      let dataFilter = data
+      switch (filter) {
+        case 'all':
+          dataFilter = data
+          break;
+        case 'active':
+          dataFilter = data.filter(val => {
+            if (val.active && !val.deleted) {
+              return true
+            }
+          })
+          break;
+        case 'locked':
+          dataFilter = data.filter(val => {
+            if (!val.active && !val.deleted) {
+              return true
+            }
+          })
+          break;
+        case 'deleted':
+          dataFilter = data.filter(val => {
+            if (val.deleted) {
+              return true
+            }
+          })
+          break;
+        default:
+          break;
+      }
+
+      setDataFilter(dataFilter)
+    }
+    getDataSupplierFilter();
+  }, [filter]);
+  //xử lý checkbox
+  const rowSelection = {
+    selections,
+    onChange: (newSelectedRowKeys, selections) => {
+      setSelections(selections);
+    },
+  };
 
   //xử lý layout,modal,form
-  const [form] = Form.useForm();
+  const [form] = Form.useForm()
 
   // Đây là Dữ liệu truyền vào
   //menu
@@ -31,17 +100,38 @@ function Categories() {
       label: "Trạng thái",
       children: [
         {
-          key: "active",
-          label: countA ? `Hoạt động {${countA}}` : "Hoạt động",
+          key: "all",
+          label: `Tất cả (${data.filter(val => !val.deleted).length})`,
           onClick: () => {
-            setLink("/");
+            setFilter("all");
+            setLink("/")
+
+          },
+        },
+        {
+          key: "active",
+          label: `Hoạt động (${data.filter(val => { if (val.active && !val.deleted) return val }).length})`,
+          onClick: () => {
+            setFilter("active");
+            setLink("/")
+
+          },
+        },
+        {
+          key: "locked",
+          label: `Khóa (${data.filter(val => { if (!val.active) return val }).length})`,
+          onClick: () => {
+            setFilter("locked");
+            setLink("/")
+
           },
         },
         {
           key: "deleted",
-          label: countD ? `Khóa {${countD}}` : "Khóa",
+          label: `Đã Xóa (${data.filter(val => { if (val.deleted == true) return val }).length})`,
           onClick: () => {
-            setLink("/getDeleted");
+            setFilter("deleted");
+            setLink("/getDeleted")
           },
         },
       ],
@@ -58,6 +148,7 @@ function Categories() {
           value: {},
           form,
           type: "Category",
+          suppliers:suppliers,
           cb: async (value) => {
             try {
               const fileImage = value.fileImage;
@@ -66,17 +157,14 @@ function Categories() {
                 formData.append("file", fileImage.file);
               }
               delete value.fileImage;
-              const addCategorySt = await axiosClient.post(`/v1/category/add`, {
+              const addSupplierSt = await axiosClient.post(`/admin/data/categories/ADD/add`, {
                 ...value,
               });
-              message.info(addCategorySt.message);
+              message.info(addSupplierSt.message);
 
-              if (addCategorySt.status) {
+              if (addSupplierSt.status) {
                 if (fileImage) {
-                  const uploadStatus = await axiosClient.post(
-                    `/v1/upload-single/categories/${addCategorySt.data._id}`,
-                    formData
-                  );
+                  const uploadStatus = await axiosClient.post(`/admin/upload-single/categories/${addSupplierSt.data._id}`, formData)
                   message.info(uploadStatus.message);
                 }
               }
@@ -85,9 +173,11 @@ function Categories() {
               message.error(error?.response?.data?.message);
             }
             form.resetFields();
-            navigate(0);
+            // navigate(0)
           },
-          cbUpFile: async (fileUpload) => {},
+          cbUpFile: async (fileUpload) => {
+
+          },
         });
       },
     },
@@ -98,7 +188,7 @@ function Categories() {
       children: [
         {
           key: "Delete",
-          label: "Xóa nhiều",
+          label: "Xóa",
           icon: <DeleteOutlined />,
           onClick: async () => {
             showHandleStatusConfirm({
@@ -112,36 +202,56 @@ function Categories() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.delete(
-                    "/v1/category/deletes",
+                    "/admin/data/categories/UPDATE/deletes",
                     { data: { ids } }
                   );
                   message.info(deletesCtSt.message);
                   navigate(0);
                 } catch (error) {
                   console.log(error);
-                  message.error(error?.response?.data?.message);
+                  message.error(error.response.data.message);
                 }
               },
             });
           },
         },
-      ],
-    },
-  ];
-
-  const itemsActionDelete = [
-    {
-      key: "control",
-      label: "Quản trị",
-      icon: <LockOutlined />,
-      children: [
         {
-          key: "Restore",
-          label: "Kích hoạt",
-          icon: <DeleteOutlined />,
+          key: "Locked",
+          label: "Khóa",
+          icon: <LockOutlined />,
           onClick: async () => {
             showHandleStatusConfirm({
-              action: "Restore",
+              action: "Lock",
+              type: "Category",
+              value: selections,
+              cb: async (value) => {
+                console.log('data xóa ', value);
+
+                const ids = value.map((v) => v._id);
+                let formData = new FormData();
+                formData.append("ids", ids);
+                try {
+                  const deletesCtSt = await axiosClient.patch(
+                    "/admin/data/categories/UPDATE/changeStatusM",
+                    { ids, status: false }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error.response.data.message);
+                }
+              },
+            });
+          },
+        },
+        {
+          key: "UnLocked",
+          label: "Mở khóa",
+          icon: <UnlockOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Unlock",
               type: "Category",
               value: selections,
               cb: async (value) => {
@@ -150,12 +260,51 @@ function Categories() {
                 let formData = new FormData();
                 formData.append("ids", IDBObjectStore);
                 try {
-                  const deletesCtSt = await axiosClient.put(
-                    "/v1/category/restores",
-                    { ids }
+                  const deletesCtSt = await axiosClient.patch(
+                    "/admin/data/categories/UPDATE/changeStatusM",
+                    { ids, status: true }
                   );
                   message.info(deletesCtSt.message);
                   navigate(0);
+                } catch (error) {
+                  console.log(error);
+                  message.error(error.response.data.message);
+                }
+              },
+            });
+          },
+        }
+      ],
+    },
+  ];
+
+  const itemsActionDelete = [
+
+    {
+      key: "control",
+      label: "Quản trị",
+      icon: <LockOutlined />,
+      children: [
+        {
+          key: "Restore",
+          label: "Khôi phục",
+          icon: <DeleteOutlined />,
+          onClick: async () => {
+            showHandleStatusConfirm({
+              action: "Restore",
+              type: "Category",
+              value: selections,
+              cb: async (value) => {
+                const ids = value.map((v) => v._id);
+                let formData = new FormData();
+                formData.append("ids", IDBObjectStore);
+                try {
+                  const deletesCtSt = await axiosClient.patch(
+                    "/admin/data/categories/UPDATE/restores",
+                    { ids }
+                  );
+                  message.info(deletesCtSt.message);
+                  navigate(0)
                 } catch (error) {
                   console.log(error);
                   message.error(error?.response?.data?.message);
@@ -166,7 +315,7 @@ function Categories() {
         },
         {
           key: "destroys",
-          label: "Hủy diệt nhiều",
+          label: "Xóa hoàn toàn",
           icon: <DeleteOutlined />,
           onClick: async () => {
             showHandleStatusConfirm({
@@ -175,18 +324,19 @@ function Categories() {
               value: selections,
               cb: async (value) => {
                 const ids = value.map((v) => v._id);
+                console.log(ids);
                 let formData = new FormData();
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.delete(
-                    "/v1/category/destroys",
+                    "/admin/data/categories/DELETE/destroys",
                     { data: { ids } }
                   );
                   message.info(deletesCtSt.message);
                   navigate(0);
                 } catch (error) {
                   console.log(error);
-                  message.error(error?.response?.data?.message);
+                  message.error(error.response.data.message);
                 }
               },
             });
@@ -196,13 +346,22 @@ function Categories() {
     },
   ];
   //column table
-  const ColumnsCategory = [
+  const ColumnsCategories= [
     {
-      title: "Name",
+      title: "",
+      dataIndex: "active",
+      width: "30px",
+      render: (text) => {
+        return text ? <UnlockOutlined /> : <LockOutlined />
+      }
+    },
+    {
+      title: "Danh mục",
       dataIndex: "name",
     },
     {
-      title: "icon",
+      title: "Icon",
+      width: '100px',
       dataIndex: "coverImgUrl",
       render: (text) => {
         return (
@@ -216,6 +375,21 @@ function Categories() {
       },
     },
     {
+      title: "Người tạo",
+      dataIndex: 'createBy',
+      render: (text) => {
+        return text.creater
+      }
+    },
+    {
+      title: "Nhà cung cấp",
+      dataIndex: 'supplierIds',
+      suppliers,
+      render: (text) => {
+        return <ul>{text.map(vl => <li key = {vl.supplierId.name}>{vl.supplierId.name}</li>)}</ul>
+      }
+    },
+    {
       title: "Action",
       render: (_, value) => {
         return (
@@ -224,47 +398,7 @@ function Categories() {
               type="primary"
               ghost
               style={{ marginRight: "10px" }}
-              onClick={() => {
-                showPromiseConfirm({
-                  value: value,
-                  form,
-                  type: "Category",
-                  cb: async (value2) => {
-                    try {
-                      const fileImage = value2.fileImage;
-                      let formData = new FormData();
-                      if (fileImage) {
-                        formData.append("file", fileImage.file);
-                      }
-                      delete value2.fileImage;
-                      const updateCategoryST = await axiosClient.put(
-                        `/v1/category/update/${value._id}`,
-                        {
-                          ...value2,
-                        }
-                      );
-                      // message.info(updateCategoryST.message);
-                      console.log(updateCategoryST);
-                      if (updateCategoryST.status) {
-                        if (fileImage) {
-                          console.log("vào đây rồi");
-                          const uploadStatus = await axiosClient.post(
-                            `/v1/upload-single/categories/${value._id}`,
-                            formData
-                          );
-                          message.info(uploadStatus.message);
-                        }
-                      }
-                    } catch (error) {
-                      console.log(error);
-                      message.error(error?.response?.data?.message);
-                    }
-                    form.resetFields();
-                    navigate(0);
-                  },
-                  cbUpFile: async (fileUpload) => {},
-                });
-              }}
+              onClick={() => handleUpdate(value)}
             >
               Sửa
             </Button>
@@ -279,11 +413,10 @@ function Categories() {
                   cb: async (value) => {
                     try {
                       let deleteStatus = await axiosClient.delete(
-                        `/v1/category/delete/${value._id}`
+                        `/admin/data/categories/UPDATE/delete/${value[0]._id}`
                       );
-                      console.log("deleteStatus", deleteStatus);
                       message.info(deleteStatus.message);
-                      navigate(0);
+                      navigate(0)
                     } catch (error) {
                       console.log(error);
                       message.error(error?.response?.data?.message);
@@ -300,13 +433,22 @@ function Categories() {
     },
   ];
 
-  const ColumnsCategoryDeleted = [
+  const ColumnsCategoriesDeleted = [
     {
-      title: "Name",
+      title: "",
+      dataIndex: "active",
+      width: "30px",
+      render: (text) => {
+        return text ? <UnlockOutlined /> : <LockOutlined />
+      }
+    },
+    {
+      title: "Danh mục",
       dataIndex: "name",
     },
     {
-      title: "icon",
+      title: "Icon",
+      width: '100px',
       dataIndex: "coverImgUrl",
       render: (text) => {
         return (
@@ -318,6 +460,21 @@ function Categories() {
           />
         );
       },
+    },
+    {
+      title: "Người tạo",
+      dataIndex: 'createBy',
+      render: (text) => {
+        return text.creater
+      }
+    },
+    {
+      title: "Nhà cung cấp",
+      dataIndex: 'supplierIds',
+      suppliers,
+      render: (text) => {
+        return <ul>{text.map(vl => <li key = {vl.supplierId.name}>{vl.supplierId.name}</li>)}</ul>
+      }
     },
     {
       title: "Action",
@@ -335,8 +492,8 @@ function Categories() {
                   value: [value],
                   cb: async (value) => {
                     try {
-                      let restoreSt = await axiosClient.put(
-                        `/v1/category/restore/${value._id}`
+                      let restoreSt = await axiosClient.patch(
+                        `/admin/data/categories/UPDATE/restore/${value[0]._id}`
                       );
                       message.info(restoreSt.message);
                       navigate(0);
@@ -361,7 +518,7 @@ function Categories() {
                   cb: async (value) => {
                     try {
                       let destroySt = await axiosClient.delete(
-                        `/v1/category/destroy/${value._id}`
+                        `/admin/data/categories/DELETE/destroy/${value[0]._id}`
                       );
                       message.info(destroySt.message);
                       navigate(0);
@@ -381,38 +538,52 @@ function Categories() {
     },
   ];
 
-  useEffect(() => {
-    async function getDataCategory() {
-      const categories = await axiosClient.get("/v1/category" + link);
-      const dataWithKey = categories.data.map((value) => ({
-        ...value,
-        key: value.slug,
-      }));
-      setData(dataWithKey);
-      setCountD(categories.deleted);
-      setCountA(categories.countA);
-    }
-    getDataCategory();
-  }, [link]);
-
-  //xử lý checkbox
-  const rowSelection = {
-    selections,
-    onChange: (newSelectedRowKeys, selections) => {
-      setSelections(selections);
-    },
-  };
+  async function handleUpdate(value) {
+    return showPromiseConfirm({
+      value: value,
+      form,
+      suppliers,
+      type: "Category",
+      cb: async (value2) => {
+        try {
+          const fileImage = value2.fileImage;
+          console.log("fileImage", fileImage);
+          let formData = new FormData()
+          if (fileImage) {
+            formData.append("file", fileImage.file);
+          }
+          delete value2.fileImage;
+          const updateSupplierST = await axiosClient.patch(`/admin/data/categories/UPDATE/update/${value._id}`, {
+            ...value2,
+          });
+          if (updateSupplierST.status) {
+            if (fileImage) {
+              const uploadStatus = await axiosClient.post(`/admin/upload-single/categories/${value._id}`, formData)
+              message.info(uploadStatus.message);
+            }
+          }
+          message.info(updateSupplierST.message);
+          form.resetFields();
+          navigate(0)
+        } catch (error) {
+          console.log(error);
+          message.error(error.response.data.message);
+        }
+      },
+      cbUpFile: async (fileUpload) => {
+      },
+    });
+  }
   //endx
   return (
     <div style={{ paddingTop: "10px" }}>
       <ContentHandle
         itemsFilter={items}
         itemsAction={link === "/getDeleted" ? itemsActionDelete : itemsAction}
-        dataTable={data}
+        dataTable={dataFilter}
         rowSelection={rowSelection}
         columns={
-          link === "/getDeleted" ? ColumnsCategoryDeleted : ColumnsCategory
-        }
+          link === "/getDeleted" ? ColumnsCategoriesDeleted : ColumnsCategories}
         pagination={{ pageSize: 6 }}
       />
     </div>

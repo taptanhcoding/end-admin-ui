@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Menu, Layout } from "antd";
+import { Menu, Layout,message } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
   AppstoreOutlined,
@@ -14,13 +14,16 @@ import {
   LaptopOutlined,
   NotificationOutlined,
   UserOutlined,
-   UsergroupAddOutlined
+  UsergroupAddOutlined,
+  ProfileOutlined ,
+  FormOutlined 
 } from "@ant-design/icons";
-import axiosClient from '../../../../libraries/axiosClient'
+import axiosClient from "../../../../libraries/axiosClient";
 
 function HeaderLayout() {
+  const [countAuth,setCountAuth] = useState(0)
   const { Header } = Layout;
-  const [admin,setAdmin] = useState({})
+  const [admin, setAdmin] = useState({});
   const navigate = useNavigate();
   const items1 = [
     {
@@ -61,40 +64,74 @@ function HeaderLayout() {
       key: "Nhân viên",
       icon: <UsergroupAddOutlined />,
       label: "Quản lý Nhân viên",
-      onClick: () => navigate("/admin/order"),
+      onClick: () => navigate("/admin/employees"),
     },
-    
+    // {
+    //   key: "Người dùng",
+    //   icon: <FormOutlined />,
+    //   label: "Quản lý Người dùng",
+    //   onClick: () => navigate("/admin/customers"),
+    // },
     {
       key: "admin",
       icon: <UserOutlined />,
       label: "Admin:" + admin.email,
       children: [
         {
+          key: "Profile",
+          icon: <ProfileOutlined />,
+          label: "Cấu hình",
+          onClick: async () => {
+            navigate(`/admin/profile/${admin._id}`)
+          }
+        },
+        {
           key: "Logout",
           icon: <LogoutOutlined />,
           label: "Đăng xuất",
-          onClick: () => {
-            localStorage.removeItem('token')
-            localStorage.removeItem('refreshToken')
-            navigate(0)
+          onClick:async () => {
+            try {
+              await axiosClient.delete('/admin/logout')
+              localStorage.removeItem("token");
+              localStorage.removeItem("refreshToken");
+              navigate(0);
+              
+            } catch (error) {
+              console.log('lỗi đăng xuất',error);
+              message.error("Gặp vấn đề với việc đăng xuất")
+            }
           },
         },
-      ]
+      ],
     },
-    
   ];
+  async function CheckLogin() {
+    axiosClient
+      .get("/admin/auth")
+      .then((login) => {
+        setAdmin(login.admin);
+      })
+      .catch((err) => {
+        console.log("err auth", err);
+        if (!localStorage.getItem("refreshToken")) {
+          navigate("/login");
+        } else {
+          if(!err.response.data.status) {
+            navigate("/login");
+          }
+          setCountAuth(prev => prev +1)
+          if(countAuth <= 4) {
+            CheckLogin();
+          }else{
+          navigate("/login");
+          }
+        }
+      });
+  }
 
   useEffect(() => {
-    async function CheckLogin() {
-        try {
-            let login = await axiosClient.get('/v1/auth')
-            setAdmin(login.user)
-        } catch (error) {
-            navigate('/login')
-        }
-    }
-    CheckLogin()
-  },[])
+    CheckLogin();
+  }, []);
   return (
     <Header className="header">
       <div className="logo"></div>

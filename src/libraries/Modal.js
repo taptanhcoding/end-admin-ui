@@ -1,4 +1,17 @@
-import { Modal, Form, Input, Image, Upload, Select } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Image,
+  Upload,
+  Select,
+  Checkbox,
+  Radio,
+  Col,
+  Row,
+  DatePicker,
+  TreeSelect
+} from "antd";
 import {
   ExclamationCircleFilled,
   AppstoreAddOutlined,
@@ -27,6 +40,14 @@ const actions = {
     title: "Hủy diệt",
     typeButton: "danger",
   },
+  Lock: {
+    title: "Khóa",
+    typeButton: "danger",
+  },
+  Unlock: {
+    title: "Kích hoạt",
+    typeButton: "default",
+  },
   Restore: {
     title: "Khôi phục",
     typeButton: "default",
@@ -34,7 +55,7 @@ const actions = {
 };
 
 const forms = {
-  Category: ({ form, settings, value, cb, cbUpFile }) => {
+  Category: ({ form, settings, value, cb, cbUpFile, suppliers }) => {
     return (
       <Form
         form={form}
@@ -54,12 +75,30 @@ const forms = {
         <Form.Item label="Mô tả" name="description">
           <Input />
         </Form.Item>
+        <Form.Item label="Nhà cung cấp" name="supplierIds">
+          <Checkbox.Group
+          >
+            <Row>
+              {suppliers.map((supplier) => (
+                <Col key={supplier._id} span={12}>
+                  <Checkbox value={{ supplierId: supplier._id }} checked>{supplier?.name}</Checkbox>
+                </Col>
+              ))}
+            </Row>
+          </Checkbox.Group>
+        </Form.Item>
+        <Form.Item label="Trạng thái" name="active">
+          <Radio.Group>
+            <Radio value={true}> Hoạt động </Radio>
+            <Radio value={false}> Khóa </Radio>
+          </Radio.Group>
+        </Form.Item>
         <Form.Item label="Icon mới" name="fileImage" rules={[{ type: "file" }]}>
           <Upload
             beforeUpload={(file) => {
               return false;
             }}
-            {...settings}
+            {...settings.singleFile}
             listType="picture-card"
             onChange={(file) => {
               console.log("change file", file);
@@ -134,6 +173,12 @@ const forms = {
         <Form.Item label="Địa chỉ" name="address">
           <Input />
         </Form.Item>
+        <Form.Item label="Trạng thái" name="active">
+          <Radio.Group>
+            <Radio value={true}> Hoạt động </Radio>
+            <Radio value={false}> Khóa </Radio>
+          </Radio.Group>
+        </Form.Item>
         <Form.Item
           label="Hình đại diện"
           name="fileImage"
@@ -143,7 +188,7 @@ const forms = {
             beforeUpload={(file) => {
               return false;
             }}
-            {...settings}
+            {...settings.singleFile}
             listType="picture-card"
             onChange={(file) => {
               console.log("change file", file);
@@ -162,113 +207,283 @@ const forms = {
             </div>
           </Upload>
         </Form.Item>
-        <Form.Item
-          label="Slide mô tả"
-          name="fileImages"
-          rules={[{ type: "file" }]}
-        >
-          <Upload
-            beforeUpload={(file) => {
-              return false;
-            }}
-            {...settings}
-            listType="picture-card"
-            onChange={(file) => {}}
-          >
-            <div>
-              <PlusOutlined />
-              <div
-                style={{
-                  marginTop: 8,
-                }}
-              >
-                Chọn hình ảnh
-              </div>
-            </div>
-          </Upload>
-        </Form.Item>
       </Form>
     );
   },
-  Product: ({ form, settings, value, cb, cbUpFile, categories, suppliers }) => {
+  Employee: ({ form, settings, value, cb, cbUpFile, suppliers }) => {
     return (
       <Form
         form={form}
         onFinish={cb}
         onFinishFailed={(va) => {
-          console.log("value2", va);
+          console.log("va2", va);
+        }}
+      >
+          <Form.Item label="Họ" name='firstName'>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Tên" name='lastName'>
+            <Input />
+          </Form.Item>
+
+          <Form.Item label="Avatar" name="img" rules={[{ type: "file" }]}>
+            <Upload
+              beforeUpload={(file) => {
+                return false;
+              }}
+              listType="picture-card"
+              onChange={(file) => {
+                console.log("change file", file);
+              }}
+            >
+              <div>
+                <PlusOutlined />
+                <div
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  Chọn hình ảnh
+                </div>
+              </div>
+            </Upload>
+          </Form.Item>
+          <Form.Item label="Email" name='email'>
+            <Input/>
+          </Form.Item>
+          <Form.Item label="Điện thoại" name='phoneNumber'>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Địa chỉ" name='address'>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Sinh nhật" name=''>
+            <DatePicker />
+          </Form.Item>
+          <Form.Item label="Mã chức vụ" name={['roles', 'pos']}>
+            <Select
+              style={{ width: 120 }}
+              options={[
+                { value: 'owner', label: 'Owner' },
+                { value: 'admin', label: 'Admin' },
+                { value: 'support', label: 'Support' },
+                { value: 'employee', label: 'Employee' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item label="Trạng thái" name={['active']}>
+            <Radio.Group options={[{
+              label: 'Hoạt động',
+              value: true
+            }, {
+              label: "Khóa",
+              value: false
+            }]} optionType="button" />
+          </Form.Item>
+          <Form.Item label="Chức vụ" name={['roles', 'title']}>
+            <Input
+            />
+          </Form.Item>
+          <Form.Item label="Cho phép thay đổi phân quyền" name={['enableEditRoles']}>
+            <Radio.Group options={[{
+              label: 'Cho phép',
+              value: true
+            }, {
+              label: "Không cho phép",
+              value: false
+            }]} optionType="button" />
+          </Form.Item>
+          <Form.Item label="Phân quyền" name={['roles', 'auth']}>
+            <Form.Item label='Nhà cung cấp' name={['roles', 'auth', 'suppliers']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Danh mục' name={['roles', 'auth', 'categories']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Sản phẩm' name={['roles', 'auth', 'products']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Người dùng' name={['roles', 'auth', 'customers']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Bán hàng' name={['roles', 'auth', 'orders']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Nhân viên' name={['roles', 'auth', 'employees']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Slider' name={['roles', 'auth', 'sliders']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            <Form.Item label='Bình luận' name={['roles', 'auth', 'comments']} style={{ display: "flex", 'flexDirection': 'row' }}>
+              <Checkbox.Group options={[{
+                label: "Lấy danh sách",
+                value: 'GET'
+              }, {
+                label: "Thêm",
+                value: "ADD"
+              },
+              {
+                label: "Sửa",
+                value: "UPDATE"
+              },
+              {
+                label: "Xóa",
+                value: "DELETE"
+              }
+              ]} />
+            </Form.Item>
+            
+          </Form.Item>
+          <Form.Item label="Mật khẩu mới" name={['password']}>
+            <Input/>
+          </Form.Item>
+      </Form>
+    );
+  },
+  Customer: ({ form, settings, value, cb, cbUpFile, suppliers }) => {
+    return (
+      <Form
+        form={form}
+        onFinish={cb}
+        onFinishFailed={(va) => {
+          console.log("va2", va);
         }}
         {...formItemLayout}
       >
         <Form.Item
-          label="Tên sản phẩm"
+          label="Tên nhân viên"
           name="name"
           rules={[{ required: true, message: "Vui lòng nhập trường này" }]}
         >
           <Input />
         </Form.Item>
-        <Form.Item
-          hasFeedback
-          label="Giá"
-          name="price"
-          rules={[
-            {
-              type: "float",
-            },
-            {
-              validator: async (p) => {
-                return p >= 0
-              },
-              message: "Giá không âm",
-            },
-          ]}
-        >
+        <Form.Item label="Mô tả" name="description">
           <Input />
         </Form.Item>
-        <Form.Item
-          hasFeedback
-          label="Giảm giá (%)"
-          name="discount"
-          rules={[
-            {
-              type: "float",
-            },
-            {
-              validator: async (p) => {
-                return p >= 0 && p <= 75
-              },
-              message: "Khuyến mãi không âm và vượt quá 75% giá sản phẩm",
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          hasFeedback
-          label="Tồn"
-          name="stock"
-          rules={[
-            {
-              type: "float",
-            },
-          ]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item label="Danh mục" name='categoryId' >
-          <Select showSearch options={categories.map(category => ({value: category._id,label: category.name}))}/>
-        </Form.Item>
-        <Form.Item label="Nguồn" name='supplierId' >
-          <Select showSearch options={suppliers.map(supplier => ({value: supplier._id,label: supplier.name}))}/>
-        </Form.Item>
-        <Form.Item label="Địa chỉ" name="address">
-          <Input />
+        <Form.Item label="Nhà cung cấp" name="supplierIds">
+          <Checkbox.Group
+          >
+            <Row>
+              {suppliers.map((supplier) => (
+                <Col key={supplier._id} span={8}>
+                  <Checkbox value={supplier._id} defaultChecked={true}>{supplier?.name}</Checkbox>
+                </Col>
+              ))}
+            </Row>
+          </Checkbox.Group>
         </Form.Item>
         <Form.Item label="Icon mới" name="fileImage" rules={[{ type: "file" }]}>
           <Upload
             beforeUpload={(file) => {
               return false;
             }}
+            {...settings.singleFile}
             listType="picture-card"
             onChange={(file) => {
               console.log("change file", file);
@@ -305,13 +520,19 @@ const types = {
   Order: {
     title: "đơn hàng",
   },
+  Employee: {
+    title: 'nhân viên'
+  },
+  Customer: {
+    title: 'khách hàng'
+  }
 };
 
 export const showHandleStatusConfirm = ({
   action = "Xóa",
   type = "",
   value = [],
-  cb = async () => {},
+  cb = async () => { },
 }) => {
   confirm({
     title: `${actions[action].title} ${types[type].title} này?`,
@@ -325,14 +546,9 @@ export const showHandleStatusConfirm = ({
     okType: actions[action].typeButton,
     cancelText: "Hủy",
     onOk: () => {
-      if (value.length > 1) {
-        cb(value);
-      } else {
-        let [a] = value;
-        cb(a);
-      }
+      cb(value)
     },
-    onCancel() {},
+    onCancel() { },
   });
 };
 
@@ -342,6 +558,7 @@ export const showPromiseConfirm = ({
   type,
   cb,
   cbUpFile,
+  cbCate,
   categories = [],
   suppliers = [],
 }) => {
@@ -369,7 +586,7 @@ export const showPromiseConfirm = ({
   if (value.Images) {
     let arImg = Object.keys(value.Images);
     arImg.forEach((img, index) =>
-      settings.singleFile.defaultFileList.push({
+      settings.multiFile.defaultFileList.push({
         uid: -index,
         name: img,
         status: "done",
@@ -382,6 +599,7 @@ export const showPromiseConfirm = ({
     icon: <AppstoreAddOutlined />,
     width: "50vw",
     content: (
+      
       <>
         {" "}
         {forms[type]({
@@ -390,6 +608,7 @@ export const showPromiseConfirm = ({
           value,
           cb,
           cbUpFile,
+          cbCate,
           categories,
           suppliers,
         })}

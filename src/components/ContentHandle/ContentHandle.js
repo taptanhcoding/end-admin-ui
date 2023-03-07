@@ -3,9 +3,9 @@ import  {Layout,Table,Menu} from 'antd'
 import React from 'react'
 import SiderFillter from '../SiderFilter/SiderFillter'
 
-export default function ContentHandle({itemsFilter=[],itemsAction=[],columns=[],rowSelection,dataTable,pagination}) {
+export default function ContentHandle({itemsFilter=[],itemsAction=[],columns=[],rowSelection,dataTable,pagination,tableScroll=false}) {
   const { Sider, Content, Header } = Layout;
-
+  const scroll = tableScroll ? {scroll:{x: 1500,y: 300,}} : {}
   return (
     <Layout>
     <SiderFillter items={itemsFilter} />
@@ -20,6 +20,7 @@ export default function ContentHandle({itemsFilter=[],itemsAction=[],columns=[],
             columns={columns}
             dataSource={dataTable}
             pagination={pagination}
+            {...scroll}
           />
         </Content>
       </Layout>
