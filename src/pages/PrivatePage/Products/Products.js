@@ -367,10 +367,10 @@ function Products() {
                   cb: async (value) => {
                     try {
                       let deleteStatus = await axiosClient.delete(
-                        `/admin/data/products/UPDATE/delete/${value._id}`
+                        `/admin/data/products/UPDATE/delete/${value[0]._id}`
                       );
                       message.info(deleteStatus.message);
-                      navigate(0);
+                      // navigate(0);
                     } catch (error) {
                       console.log(error);
                       message.error(error?.response?.data?.message);
@@ -407,7 +407,7 @@ function Products() {
                   cb: async (value) => {
                     try {
                       let restoreSt = await axiosClient.put(
-                        `/admin/data/products/UPDATE/restore/${value._id}`
+                        `/admin/data/products/UPDATE/restore/${value[0]._id}`
                       );
                       message.info(restoreSt.message);
                       navigate(0);
@@ -432,7 +432,7 @@ function Products() {
                   cb: async (value) => {
                     try {
                       let destroySt = await axiosClient.delete(
-                        `/admin/data/products/DELETE/destroy/${value._id}`
+                        `/admin/data/products/DELETE/destroy/${value[0]._id}`
                       );
                       message.info(destroySt.message);
                       navigate(0);

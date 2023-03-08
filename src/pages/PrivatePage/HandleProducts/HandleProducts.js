@@ -222,6 +222,7 @@ export default function HandleProducts() {
 
   async function handleAdd(format,file,sliders) {
     try {
+      console.log('format ',format);
       const rsAdd =  await axiosClient.post('/admin/data/products/ADD/add',format)
       if(rsAdd.status) {
         await axiosClient.post(`/admin/upload-single/products/${rsAdd.data._id}`,file)
