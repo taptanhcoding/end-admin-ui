@@ -323,7 +323,7 @@ export default function HandleProducts() {
             <Link to="/">Home</Link>
           </Breadcrumb.Item>
           <Breadcrumb.Item>
-            <Link to="/admin/data/products">Product</Link>
+            <Link to="/admin/products">Product</Link>
           </Breadcrumb.Item>
           <Breadcrumb.Item>{id == "add" ? "Thêm mới" : "Sửa"}</Breadcrumb.Item>
         </Breadcrumb>

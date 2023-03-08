@@ -258,6 +258,7 @@ function Products() {
     },
   ];
   //column table
+  console.log('process.env.REACT_APP_API_URL', process.env.REACT_APP_API_URL);
   const settingColumns = [
     {
       title: "",
@@ -270,6 +271,10 @@ function Products() {
     {
       title: "Tên",
       dataIndex: "name",
+    },
+    {
+      title: "Mã sp",
+      dataIndex: "code",
     },
     {
       title: "giá",
@@ -299,7 +304,7 @@ function Products() {
     },
     {
       title: "Hình ảnh",
-      dataIndex: "coverImageUrl",
+      dataIndex: "coverImgUrl",
       render: (text) => {
         return (
           <Image
@@ -487,7 +492,7 @@ function Products() {
       default:
         break;
     }
-  }, [filter])
+  }, [filter,data])
 
   useMemo(() => {
     async function getCateSupp() {
