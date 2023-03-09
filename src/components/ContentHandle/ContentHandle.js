@@ -5,7 +5,7 @@ import SiderFillter from '../SiderFilter/SiderFillter'
 
 export default function ContentHandle({itemsFilter=[],itemsAction=[],columns=[],rowSelection,dataTable,pagination,tableScroll=false}) {
   const { Sider, Content, Header } = Layout;
-  const scroll = tableScroll ? {scroll:{x: 1500,y: 300,}} : {}
+  const scroll = tableScroll ? {scroll:{x: 1500}} : {}
   return (
     <Layout>
     <SiderFillter items={itemsFilter} />

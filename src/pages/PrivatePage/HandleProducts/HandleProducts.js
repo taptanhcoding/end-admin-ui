@@ -212,13 +212,7 @@ export default function HandleProducts() {
     }
   }, [categoryId]);
 
-  const handleOptions = (options) => {
-    let data = {}
-    let files = {}
-    options.forEach(option => {
 
-    })
-  }
 
   async function handleAdd(format,file,sliders) {
     try {
@@ -298,7 +292,7 @@ export default function HandleProducts() {
         info = await handleUpdate(id,dataFormat,avatar,sliders)
       }
       
-      notification.info(info.message)
+      message.info(info.message)
       form.resetFields()
       navigate(-1)
     } catch (error) {

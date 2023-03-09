@@ -44,8 +44,7 @@ function Products() {
           key: "all",
           label: "Tất cả",
           onClick: () => {
-            setFilter('all')
-            setLink("/");
+            setFilter(prev => prev == 'all' ? "" :'all')
           },
         },
         {
@@ -53,7 +52,6 @@ function Products() {
           label: "Hoạt động",
           onClick: () => {
             setFilter('active')
-            setLink("/");
           },
         },
         {
@@ -61,15 +59,13 @@ function Products() {
           label: "Khóa",
           onClick: () => {
             setFilter('locked')
-            setLink("/");
           },
         },
         {
           key: "deleted",
           label: "Đã xóa",
           onClick: () => {
-            setFilter('deleted')
-            setLink("/getDeleted");
+            setFilter('delete')
           },
         }
       ],
@@ -264,6 +260,7 @@ function Products() {
       title: "",
       dataIndex: "active",
       width: "30px",
+      fixed: 'left',
       render: (text) => {
         return text ? <UnlockOutlined /> : <LockOutlined />
       }
@@ -271,10 +268,18 @@ function Products() {
     {
       title: "Tên",
       dataIndex: "name",
+      fixed: 'left',
     },
     {
       title: "Mã sp",
       dataIndex: "code",
+      fixed: 'left',
+    },
+    {
+      title: "Vị trí",
+      dataIndex: "promotionPosition",
+      fixed: 'left',
+      render: (vl) => <ul>{vl.map((p,i) => <li key={i}>{p}</li>)}</ul>
     },
     {
       title: "giá",
@@ -323,7 +328,7 @@ function Products() {
         return (
           <div style={{ width: "80px" }}>
             <Carousel effect="fade" autoplay>
-              {text.map((ig, index) => (
+              {text?.map((ig, index) => (
                 <div key={index}>
                   <Image
                     width={80}
@@ -343,6 +348,7 @@ function Products() {
     ...settingColumns,
     {
       title: "Action",
+      fixed:'right',
       render: (_, value) => {
         return (
           <>
@@ -370,7 +376,7 @@ function Products() {
                         `/admin/data/products/UPDATE/delete/${value[0]._id}`
                       );
                       message.info(deleteStatus.message);
-                      // navigate(0);
+                      navigate(0);
                     } catch (error) {
                       console.log(error);
                       message.error(error?.response?.data?.message);
@@ -392,6 +398,7 @@ function Products() {
 
     {
       title: "Action",
+      fixed:'right',
       render: (_, value) => {
         return (
           <>
@@ -462,6 +469,9 @@ function Products() {
       setData(dataWithKey);
     }
     getDataProducts();
+    if(filter == "") {
+      setFilter('all')
+    }
   }, []);
   useEffect(() => {
     switch (filter) {
@@ -469,25 +479,13 @@ function Products() {
         setDataFilter(data)
         break;
       case 'active':
-        setDataFilter(data.filter(val => {
-          if (val.active && !val.deleted) {
-            return true
-          }
-        }))
+        setDataFilter(data.filter(val => val.active && !val.deleted))
         break;
       case 'locked':
-        setDataFilter(data.filter(val => {
-          if (!val.active && !val.deleted) {
-            return true
-          }
-        }))
+        setDataFilter(data.filter(val => !val.active && !val.deleted))
         break;
-      case 'deleted':
-        setDataFilter(data.filter(val => {
-          if (val.deleted) {
-            return true
-          }
-        }))
+      case 'delete':
+        setDataFilter(data.filter(val => val.deleted))
         break;
       default:
         break;
@@ -514,13 +512,14 @@ function Products() {
     <div style={{ paddingTop: "10px" }}>
       <ContentHandle
         itemsFilter={items}
-        itemsAction={link === "/getDeleted" ? itemsActionDelete : itemsAction}
+        itemsAction={filter === "delete" ? itemsActionDelete : itemsAction}
         dataTable={dataFilter}
         rowSelection={rowSelection}
         columns={
-          link === "/getDeleted" ? ColumnsProductDeleted : ColumnsProduct
+          filter === "delete" ? ColumnsProductDeleted : ColumnsProduct
         }
         pagination={{ pageSize: 6 }}
+        tableScroll={true}
       />
     </div>
   );
