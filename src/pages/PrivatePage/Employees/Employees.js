@@ -90,6 +90,7 @@ function Employees() {
                   ...value,
                 }
               );
+              console.log("admin mới: ",addEmployeesSt);
               message.info(addEmployeesSt.message);
 
               if (addEmployeesSt.status) {
@@ -364,7 +365,6 @@ function Employees() {
 
   useEffect(() => {
     function setDtFilter(filter) {
-      console.log('lấy dữ liệu');
       switch (filter) {
         case 'all':
           setDataFilter(data)

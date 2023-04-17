@@ -12,6 +12,7 @@ import HandleProducts from "./pages/PrivatePage/HandleProducts/HandleProducts";
 import Error from "./pages/Error/Error";
 import Profile from "./pages/PrivatePage/Profile/Profile";
 import Customers from "./pages/PrivatePage/Customers/Customers";
+import routes from "./configs/routes";
 
 function App() {
   return (
@@ -19,18 +20,20 @@ function App() {
       <Router>
         <Routes>
         <Route path="/" element={<PrivateLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/admin/categories" element={<Categories/>} />
-            <Route path="/admin/employees" element={<Employees/>} />
-            <Route path="/admin/customers" element={<Customers/>} />
-            <Route path="/admin/products" element={<Products/>} />
-            <Route path="/admin/handle-products/:id" element={<HandleProducts/>} />
-            <Route path="/admin/suppliers" element={<Suppliers/>} />
-            <Route path="/admin/order" element={<Sales/>} />
-            <Route path="/admin/profile/:id" element={<Profile/>} />
+            {routes.map(route => {
+              if(route.layout == 'PrivateLayout') {
+                let Element = route.component
+                return <Route path={route.path} element={<Element/>} />
+              }
+            })}
           </Route>
           <Route path="/" element={<PublicLayout />}>
-            <Route path="/login" element={<Login />} />
+          {routes.map(route => {
+              if(route.layout == 'PublicLayout') {
+                let Element = route.component
+                return <Route path={route.path} element={<Element/>} />
+              }
+            })}
           </Route>
           <Route path="*" element={<Error/>}/>
         </Routes>

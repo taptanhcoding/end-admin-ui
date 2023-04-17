@@ -173,7 +173,7 @@ function Categories() {
               message.error(error?.response?.data?.message);
             }
             form.resetFields();
-            // navigate(0)
+            navigate(0)
           },
           cbUpFile: async (fileUpload) => {
 

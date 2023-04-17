@@ -35,7 +35,6 @@ function Home() {
 
     getDashboardData()
   }, [])
-  console.log(dashboard);
   const boxBg = useColorModeValue("secondaryGray.300", "whiteAlpha.100");
   return <div style={{ "height": "80vh" }}>
     <div style={{ display: 'flex', 'flexDirection': 'row', 'justifyContent': 'space-around' }}>

@@ -52,6 +52,11 @@ function HeaderLayout() {
           label: "Quản lý sản phẩm",
           onClick: () => navigate("/admin/products"),
         },
+        {
+          key: "Slide",
+          label: "Quản lý Slider,Banner",
+          onClick: () => navigate("/admin/shows"),
+        },
       ],
     },
     {
@@ -66,12 +71,12 @@ function HeaderLayout() {
       label: "Quản lý Nhân viên",
       onClick: () => navigate("/admin/employees"),
     },
-    // {
-    //   key: "Người dùng",
-    //   icon: <FormOutlined />,
-    //   label: "Quản lý Người dùng",
-    //   onClick: () => navigate("/admin/customers"),
-    // },
+    {
+      key: "Người dùng",
+      icon: <FormOutlined />,
+      label: "Quản lý Người dùng",
+      onClick: () => navigate("/admin/customers"),
+    },
     {
       key: "admin",
       icon: <UserOutlined />,

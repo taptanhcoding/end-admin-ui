@@ -5,19 +5,23 @@ import { LockOutlined, PlusOutlined, DeleteOutlined, UnlockOutlined } from "@ant
 import axiosClient from "../../../libraries/axiosClient";
 import ContentHandle from "../../../components/ContentHandle/ContentHandle";
 import {
+  HandleSlideShow,
   showHandleStatusConfirm,
-  showPromiseConfirm,
 } from "../../../libraries/Modal";
 import { images } from "../../../assets/images";
 import TimeTrans from "../../../libraries/timeTrans";
 
-function Customers() {
+function SliderShow() {
   const navigate = useNavigate();
   const [selections, setSelections] = useState([]);
+  const [showAdd, setShowAdd] = useState(false)
   //xử lý dữ liệu vào
   const [data, setData] = useState([]);
   const [filter, setFilter] = useState('all')
   const [dataFilter, setDataFilter] = useState([])
+  const [dataUpdate, setDataUpdate] = useState(null)
+  const [showUpdate, setShowUpdate] = useState(false)
+
   //xử lý upload file
 
   //xử lý layout,modal,form
@@ -68,44 +72,7 @@ function Customers() {
       label: "Thêm mới",
       icon: <PlusOutlined />,
       onClick: () => {
-        showPromiseConfirm({
-          value: {},
-          form,
-          type: "Customer",
-          cb: async (value) => {
-            try {
-              const fileImage = value.fileImage;
-              let formData = new FormData();
-              if (fileImage) {
-                formData.append("file", fileImage.file);
-              }
-              delete value.fileImage;
-              const addCustomersSt = await axiosClient.post(
-                `/admin/data/customers/ADD/add`,
-                {
-                  ...value,
-                }
-              );
-              message.info(addCustomersSt.message);
-
-              if (addCustomersSt.status) {
-                if (fileImage) {
-                  const uploadStatus = await axiosClient.post(
-                    `/admin/upload-single/customers/${addCustomersSt.data._id}`,
-                    formData
-                  );
-                  message.info(uploadStatus.message);
-                }
-              }
-            } catch (error) {
-              console.log(error);
-              message.error(error?.response?.data?.message);
-            }
-            form.resetFields();
-            navigate(0);
-          },
-          cbUpFile: async (fileUpload) => { },
-        });
+        setShowAdd(true)
       },
     },
     {
@@ -120,7 +87,7 @@ function Customers() {
           onClick: async () => {
             showHandleStatusConfirm({
               action: "Delete",
-              type: "Customer",
+              type: "Slider",
               value: selections,
               cb: async (value) => {
                 const ids = value.map((v) => v._id);
@@ -129,7 +96,7 @@ function Customers() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.delete(
-                    "/admin/data/customers/deletes",
+                    "/admin/data/sliders/UPDATE/deletes",
                     { data: { ids } }
                   );
                   message.info(deletesCtSt.message);
@@ -149,7 +116,7 @@ function Customers() {
           onClick: async () => {
             showHandleStatusConfirm({
               action: "Unlock",
-              type: "Customer",
+              type: "Slider",
               value: selections,
               cb: async (value) => {
                 const ids = value.map((v) => v._id);
@@ -158,11 +125,11 @@ function Customers() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.patch(
-                    "/admin/data/customers/UPDATE/changeStatusM",
-                    { ids,status: true }
+                    "/admin/data/sliders/UPDATE/changeStatusM",
+                    { ids, status: true }
                   );
                   message.info(deletesCtSt.message);
-                  // navigate(0);
+                  navigate(0);
                 } catch (error) {
                   console.log(error);
                   message.error(error?.response?.data?.message);
@@ -178,7 +145,7 @@ function Customers() {
           onClick: async () => {
             showHandleStatusConfirm({
               action: "Lock",
-              type: "Customer",
+              type: "Slider",
               value: selections,
               cb: async (value) => {
                 const ids = value.map((v) => v._id);
@@ -187,8 +154,8 @@ function Customers() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.patch(
-                    "/admin/data/customers/UPDATE/changeStatusM",
-                    { ids,status: false }
+                    "/admin/data/sliders/UPDATE/changeStatusM",
+                    { ids, status: false }
                   );
                   message.info(deletesCtSt.message);
                   navigate(0);
@@ -217,7 +184,7 @@ function Customers() {
           onClick: async () => {
             showHandleStatusConfirm({
               action: "Restore",
-              type: "Customers",
+              type: "Sliders",
               value: selections,
               cb: async (value) => {
                 const ids = value.map((v) => v._id);
@@ -225,7 +192,7 @@ function Customers() {
                 formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.patch(
-                    "/admin/data/customers/UPDATE/restores",
+                    "/admin/data/sliders/UPDATE/restores",
                     { ids }
                   );
                   message.info(deletesCtSt.message);
@@ -245,16 +212,16 @@ function Customers() {
           onClick: async () => {
             showHandleStatusConfirm({
               action: "Delete",
-              type: "Customers",
+              type: "Slider",
               value: selections,
               cb: async (value) => {
                 const ids = value.map((v) => v._id);
-                let formData = new FormData();
-                formData.append("ids", IDBObjectStore);
                 try {
                   const deletesCtSt = await axiosClient.delete(
-                    "/admin/data/customers/DELETE/destroys",
-                    { ids }
+                    "/admin/data/sliders/DELETE/destroys",
+                    {
+                      data: {ids}
+                    }
                   );
                   message.info(deletesCtSt.message);
                   navigate(0);
@@ -278,35 +245,41 @@ function Customers() {
       render: (data) => {
         return !data ? <LockOutlined /> : <UnlockOutlined />
       },
-      width: '100px',
+      width: '90px',
       align: 'center',
       fixed: 'left'
     },
     {
-      title: "Mã khách hàng",
-      dataIndex: "code",
-      fixed:'left',
+      title: "Mô tả ngắn",
+      dataIndex: "title",
+      fixed: 'left',
       width: '150px'
     },
     {
-      title: "Khách hàng",
-      dataIndex: "fullname",
+      title: "Link tới",
+      dataIndex: "to",
+      render: (val) => {
+        return `${val.type}/${val.link}`
+      }
     },
     {
-      title: "Email",
-      dataIndex: 'email'
+      title: "Kiểu Slide",
+      dataIndex: 'typeSlide'
     },
     {
-      title: "Điện thoại",
-      dataIndex: 'phoneNumber'
+      title: "Vị trí hiển thị",
+      dataIndex: 'promotionPosition',
+      render: (value) => {
+
+      }
     },
     {
-      title: "avatar",
+      title: "hình ảnh",
       dataIndex: "coverImgUrl",
       render: (text) => {
         return (
           <Image
-            width={50}
+            width={150}
             height={50}
             src={`${process.env.REACT_APP_API_URL}/${text}`}
             fallback={images.error}
@@ -315,25 +288,18 @@ function Customers() {
       },
     },
     {
-      title: "Sinh nhật",
-      dataIndex: "birthday",
-      render: (data) => {
-        return  TimeTrans(data);
-      },
-    },
-    {
       title: "Ngày tạo",
       dataIndex: "createdAt",
       render: (data) => {
-        return  TimeTrans(data);
+        return TimeTrans(data);
       },
     },
   ]
-  const ColumnsCustomers = [
+  const ColumnsSliders = [
     ...customerColumnShare,
     {
       title: "Action",
-      fixed : 'right',
+      fixed: 'right',
       render: (_, value) => {
         return (
           <>
@@ -342,46 +308,8 @@ function Customers() {
               ghost
               style={{ marginRight: "10px" }}
               onClick={() => {
-                showPromiseConfirm({
-                  value: value,
-                  form,
-                  type: "Customer",
-                  cb: async (value2) => {
-                    try {
-                      const fileImage = value2.fileImage;
-                      let formData = new FormData();
-                      if (fileImage) {
-                        formData.append("file", fileImage.file);
-                      }
-                      delete value2.fileImage;
-                      console.log("value update", value2);
-                      const updateCustomersST = await axiosClient.patch(
-                        `/admin/data/customers/UPDATE/update/${value._id}`,
-                        {
-                          ...value2,
-                        }
-                      );
-                      // message.info(updateCustomersST.message);
-                      console.log(updateCustomersST);
-                      if (updateCustomersST.status) {
-                        if (fileImage) {
-                          console.log("vào đây rồi");
-                          const uploadStatus = await axiosClient.post(
-                            `/admin/upload-single/customers/${value._id}`,
-                            formData
-                          );
-                          message.info(uploadStatus.message);
-                        }
-                      }
-                    } catch (error) {
-                      console.log(error);
-                      message.error(error?.response?.data?.message);
-                    }
-                    form.resetFields();
-                    navigate(0);
-                  },
-                  cbUpFile: async (fileUpload) => { },
-                });
+                setDataUpdate(value)
+                setShowUpdate(true)
               }}
             >
               Sửa
@@ -392,12 +320,12 @@ function Customers() {
               onClick={() => {
                 showHandleStatusConfirm({
                   action: "Delete",
-                  type: "Customer",
+                  type: "Slider",
                   value: [value],
                   cb: async (value) => {
                     try {
                       let deleteStatus = await axiosClient.delete(
-                        `/admin/data/customers/UPDATE/delete/${value[0]._id}`
+                        `/admin/data/sliders/UPDATE/delete/${value[0]._id}`
                       );
                       console.log("deleteStatus", deleteStatus);
                       message.info(deleteStatus.message);
@@ -418,11 +346,11 @@ function Customers() {
     },
   ];
 
-  const ColumnsCustomersDeleted = [
+  const ColumnsSlidersDeleted = [
     ...customerColumnShare,
     {
       title: "Action",
-      fixed:'right',
+      fixed: 'right',
       render: (_, value) => {
         return (
           <>
@@ -433,12 +361,12 @@ function Customers() {
               onClick={() => {
                 showHandleStatusConfirm({
                   action: "Restore",
-                  type: "Customer",
+                  type: "Slider",
                   value: [value],
                   cb: async (value) => {
                     try {
                       let restoreSt = await axiosClient.patch(
-                        `/admin/data/customers/UPDATE/restore/${value[0]._id}`
+                        `/admin/data/sliders/UPDATE/restore/${value[0]._id}`
                       );
                       message.info(restoreSt.message);
                       navigate(0);
@@ -458,12 +386,12 @@ function Customers() {
               onClick={() => {
                 showHandleStatusConfirm({
                   action: "Destroy",
-                  type: "Customer",
+                  type: "Slider",
                   value: [value],
                   cb: async (value) => {
                     try {
                       let destroySt = await axiosClient.delete(
-                        `/admin/data/customers/DELETE/destroy/${value[0]._id}`
+                        `/admin/data/sliders/DELETE/destroy/${value[0]._id}`
                       );
                       message.info(destroySt.message);
                       navigate(0);
@@ -484,15 +412,15 @@ function Customers() {
   ];
 
   useEffect(() => {
-    async function getDataCustomers() {
-      const customers = await axiosClient.get("/admin/data/customers");
-      const dataWithKey = customers.data.map((value) => ({
+    async function getDataSliders() {
+      const sliders = await axiosClient.get("/admin/data/sliders");
+      const dataWithKey = sliders.data.map((value) => ({
         ...value,
-        key: value.email,
+        key: value._id,
       }));
       setData(dataWithKey);
     }
-    getDataCustomers();
+    getDataSliders();
   }, []);
   useEffect(() => {
     switch (filter) {
@@ -511,7 +439,7 @@ function Customers() {
       default:
         break;
     }
-    if(filter === '') {
+    if (filter === '') {
       setFilter('all')
     }
 
@@ -524,22 +452,69 @@ function Customers() {
       setSelections(selections);
     },
   };
+  async function handleAddSlide(val) {
+    try {
+      let file = val.fileImage
+      let formData = new FormData();
+      if (val.fileImage) {
+      }
+      formData.append('file', file.file)
+      delete val.fileImage
+      const rsSlide = await axiosClient.post(`/admin/data/sliders/ADD/add`, val)
+      if (rsSlide?.status) {
+        message.success('Úp data thành công')
+        const rsUpImg = await axiosClient.post(`/admin/upload-single/sliders/${rsSlide.data._id}`, formData)
+        message.success('Úp ảnh thành công')
+        navigate(0)
+      } else return false
+    } catch (error) {
+      console.log("Lỗi khi thêm slider ", error);
+      message.error("Lỗi")
+    }
+  }
+  async function handleUpdateSlide(val) {
+    try {
+      let file= val.fileImage
+      let formData = new FormData();
+      if(file) {
+        formData.append('file',file.file)
+      }
+      delete val.fileImage
+      const rsSlide = await axiosClient.patch(`/admin/data/sliders/UPDATE/update/${val._id}`,val)
+      if(rsSlide?.status) {
+        message.success('Úp data thành công')
+        const rsUpImg = await axiosClient.post(`/admin/upload-single/sliders/${rsSlide.data._id}`,formData)
+        message.success('Úp ảnh thành công')
+        navigate(0)                
+      }else return false
+    } catch (error) {
+      console.log("Lỗi khi thêm slider ", error);
+      message.error("Lỗi")
+    }
+  }
   //endx
   return (
-    <div style={{ paddingTop: "10px" }}>
-      <ContentHandle
-        tableScroll={true}
-        itemsFilter={items}
-        itemsAction={filter === "delete" ? itemsActionDelete : itemsAction}
-        dataTable={dataFilter}
-        rowSelection={rowSelection}
-        columns={
-          filter === "delete" ? ColumnsCustomersDeleted : ColumnsCustomers
-        }
-        pagination={{ pageSize: 6 }}
-      />
-    </div>
+    <>
+      <div style={{ paddingTop: "10px" }}>
+        <ContentHandle
+          tableScroll={true}
+          itemsFilter={items}
+          itemsAction={filter === "delete" ? itemsActionDelete : itemsAction}
+          dataTable={dataFilter}
+          rowSelection={rowSelection}
+          columns={
+            filter === "delete" ? ColumnsSlidersDeleted : ColumnsSliders
+          }
+          pagination={{ pageSize: 6 }}
+        />
+      </div>
+      
+      {dataUpdate ? <HandleSlideShow handle={'update'} value={dataUpdate} open={showUpdate} close={() => setShowUpdate(false)} 
+      /> :
+      <HandleSlideShow handle={'add'} open={showAdd} close={() => setShowAdd(false)} 
+      />}
+    </>
   );
 }
 
-export default Customers;
+export default SliderShow;
